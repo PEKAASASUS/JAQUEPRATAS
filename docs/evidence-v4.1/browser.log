@@ -1,0 +1,10 @@
+5:16:30 PM [vite] (client) Re-optimizing dependencies because vite config has changed
+✔ navegador: catálogo preservado e gestão conectada ao PostgreSQL isolado (5538.403069ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5590.675164

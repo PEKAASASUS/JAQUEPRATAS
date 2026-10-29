@@ -1,0 +1,46 @@
+✔ migrações aplicam integralmente em PostgreSQL nativo; RLS e grants de todas as tabelas privadas (527.382153ms)
+✔ anon lê somente catálogo/categorias e não acessa gestão (13.762847ms)
+✔ autenticado sem autorização vê zero linhas privadas; admin lê os registros (19.85671ms)
+✔ nenhum papel da API, nem admin, escreve diretamente nas tabelas novas (49.201599ms)
+✔ não administrador não se promove via admin_users e revogação remove leitura imediatamente (1.373823ms)
+✔ funções auxiliares privadas não podem ser chamadas por anon/authenticated (0.904329ms)
+✔ preços históricos em decimal: promoção + Pix, soma de unidades e snapshot imutável (3.254092ms)
+✔ histórico impede alteração, exclusão e truncate; cliente usa atualização auditada (16.196061ms)
+✔ constraints rejeitam quantidades/valores inválidos e vínculos inconsistentes (3.623166ms)
+✔ catálogo e leitura de gestão não causam saídas ou recebimentos (0.516856ms)
+✔ falha de integridade desfaz a transação inteira, inclusive auditoria (0.856142ms)
+✔ chave de operação impede duplicação com duas conexões concorrentes (9.877065ms)
+✔ cartão/standard preservam preço integral; zero e Pix acumulativo seguem regra do catálogo (5.83969ms)
+✔ cliente da condicional e origem/produto/método da venda são coerentes por FK (1.579034ms)
+✔ RPCs bloqueiam visitante e login sem admin, inclusive snapshot financeiro (2.239558ms)
+✔ venda direta calcula preço no backend, pagamento parcial/estorno e replay idempotente (15.43615ms)
+✔ condicional: saída física, retorno/perda/compra parciais, devolução de venda e correção auditável (19.931906ms)
+✔ venda à vista exige quitação, snapshot de cliente/produto e cancelamento integral atômico (15.708095ms)
+✔ estoque exige motivo, impede edição direta e não admite ajuste negativo além do disponível (4.831488ms)
+✔ concorrência real: somente uma venda consegue a última unidade (24.447838ms)
+﹣ navegador: catálogo preservado e gestão conectada ao PostgreSQL isolado (0.093774ms) # SKIP
+✔ script único para SQL Editor executa integralmente e desfaz fixtures (14.990353ms)
+✔ venda com promoção zero continua válida; categoria/descrição históricas e preço Pix são protegidos (5.999663ms)
+✔ V4.1 exclui cliente sem histórico, preserva auditoria/identidade e aceita replay (7.674588ms)
+✔ V4.1 bloqueia cliente com vendas/condicionais e com alterações relevantes de auditoria (5.255618ms)
+✔ V4.1 arquiva/reativa cliente sem sobrescrever campos e impede novas operações enquanto arquivado (5.696371ms)
+✔ V4.1 exclui peça sem estoque/histórico e repete a mesma chave sem novo efeito (4.895607ms)
+✔ V4.1 bloqueia peça vendida e preserva snapshots, recebimentos e saldo (7.462862ms)
+✔ V4.1 bloqueia peça em condicional pendente e também após encerramento (7.467187ms)
+✔ V4.1 bloqueia histórico de estoque mesmo com saldo zerado e fotos sem apagar Storage (5.797952ms)
+✔ V4.1 visitante/login comum não excluem nem inspecionam e a API não recebe DELETE direto (2.59875ms)
+✔ V4.1 arquiva/reativa peça, oculta do catálogo e bloqueia nova venda mesmo de condicional (4.536721ms)
+✔ V4.1 bloqueia referência futura, inclusive FK que tentaria apagar em cascata (4.276467ms)
+✔ V4.1 rollback restaura cadastro se gravar a operação idempotente falhar após DELETE (4.164985ms)
+✔ V4.1 concorrência entre excluir cliente e entregar condicional preserva integridade nas duas ordens (42.103899ms)
+✔ V4.1 nome alterado após confirmação prévia exige nova conferência e não apaga peça errada (5.866859ms)
+✔ V4.1 script de homologação SQL Editor executa e reverte todas as fixtures (8.291811ms)
+✔ V4.1 migra base V4.0 já populada sem alterar cadastros/auditoria e mantém identidade após excluir (93.371336ms)
+ℹ tests 38
+ℹ suites 0
+ℹ pass 37
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 1028.305481

@@ -1,0 +1,52 @@
+{
+  "changed": [
+    ".nvmrc",
+    "README.md",
+    "package.json",
+    "package-lock.json",
+    "AGENTS.md",
+    ".gitignore",
+    "supabase/verify_installation.sql",
+    "supabase/tests_full_sql_editor.sql",
+    "src/App.tsx",
+    "docs/README_MARCO2_HISTORICO.md",
+    "docs/DEPLOYMENT.md",
+    "docs/TEST_PLAN.md",
+    "docs/DECISIONS.md",
+    "docs/BUSINESS_RULES.md",
+    "docs/ARCHITECTURE.md",
+    "docs/browser-mobile.png",
+    "docs/PROJECT_PROGRESS.md",
+    "docs/PROGRESS.md",
+    "src/styles/admin.css",
+    "src/lib/management.test.ts",
+    "src/lib/management.ts",
+    "src/lib/security.test.ts",
+    "src/lib/adminProducts.ts",
+    "src/components/Dialog.tsx",
+    "src/admin/ManagementPage.tsx",
+    "src/admin/services.ts",
+    "src/admin/ProductForm.tsx",
+    "src/admin/DashboardPage.tsx",
+    "src/admin/AdminLayout.tsx",
+    "supabase/migrations/20261029000000_operacoes.sql",
+    "supabase/migrations/20261028000000_gestao_base.sql",
+    "tests/database/platform-fixture.sql",
+    "tests/database/management.test.mjs"
+  ],
+  "deleted": [
+    "src/admin/ComingSoonPage.tsx"
+  ],
+  "backup": "/media/pekaasasus/Disco-Movel/PROJETOS/PROJETO-JAQUEPRATAS/WEB-V3.0.0/jackpratas-marco2/backups/antes_missao_integral_20261029.zip",
+  "additional": [
+    "docs/CHANGESET.json",
+    "docs/RELATORIO_TECNICO.md",
+    "docs/evidence/unit.log",
+    "docs/evidence/db.log",
+    "docs/evidence/browser.log",
+    "docs/evidence/build.log",
+    "docs/evidence/npm-audit.json",
+    "../AGENTS.md",
+    "../.gitignore"
+  ]
+}

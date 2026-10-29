@@ -1,0 +1,35 @@
+{
+  "changed": [
+    "CODEX_PROMPT_JAQUE_PRATAS_V4_1.md",
+    "README.md",
+    "AGENTS.md",
+    "supabase/tests_v41_sql_editor.sql",
+    "supabase/verify_installation.sql",
+    "docs/browser-v41-blocked.png",
+    "docs/browser-v41-delete.png",
+    "docs/TEST_PLAN.md",
+    "docs/RELATORIO_TECNICO.md",
+    "docs/PROJECT_PROGRESS.md",
+    "docs/DEPLOYMENT.md",
+    "docs/DECISIONS.md",
+    "docs/BUSINESS_RULES.md",
+    "docs/browser-mobile.png",
+    "docs/ARCHITECTURE.md",
+    "src/styles/admin.css",
+    "src/admin/RecordActionDialog.tsx",
+    "src/admin/services.ts",
+    "src/admin/ProductsPage.tsx",
+    "src/admin/ManagementPage.tsx",
+    "supabase/migrations/20261029010000_exclusao_segura_v41.sql",
+    "tests/database/management.test.mjs"
+  ],
+  "backup": "/media/pekaasasus/Disco-Movel/PROJETOS/PROJETO-JAQUEPRATAS/WEB-V3.0.0/jackpratas-marco2/backups/antes_v41_20261029.zip",
+  "additional": [
+    "docs/CHANGESET_V4_1.json",
+    "docs/V4_1_EXCLUSAO.md",
+    "docs/evidence-v4.1/unit.log",
+    "docs/evidence-v4.1/db.log",
+    "docs/evidence-v4.1/browser.log",
+    "docs/evidence-v4.1/build.log"
+  ]
+}

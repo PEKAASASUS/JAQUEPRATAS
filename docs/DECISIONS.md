@@ -1,0 +1,25 @@
+# Decisões e divergências
+
+1. A autorização explícita de 29/10/2026 e CODEX_PROMPT_JAQUE_PRATAS_IMPLANTACAO_COMPLETA.md substituem as pausas entre marcos registradas nos documentos anteriores. Produção/dados reais/deploy/push/DNS seguem proibidos sem nova autorização.
+2. O caminho montado atual é Disco-Movel. Não há Git reconhecido; a linha de base foi registrada por hashes antes das mudanças e será preservada em backup de arquivos alterados, sem credenciais. Não foi criado repositório ou branch fictícia.
+3. Reaproveitar a migração B do backup sem editá-la. O proprietário relatou aplicação manual prévia no Supabase de testes. Não presumir que isso registre histórico em supabase_migrations, nem reaplicar a fundação ou B sobre tabelas existentes.
+4. Serializar RPCs de negócio por advisory lock transacional e usar locks de produtos; prioridade para consistência numa loja pequena. Chaves de replay são globais, mas só podem ser reutilizadas pelo mesmo autor/operação/payload. Frontend preserva a chave de tentativa em falha de rede enquanto os dados não mudarem. Não apaga chaves em timeout.
+5. Novas tabelas seguem sem escrita direta pela API; uma RPC faz o conjunto atômico. A edição de estoque por update de produto foi bloqueada no banco e removida do serviço de edição, para evitar sobrescrever estoque concorrente com formulário antigo.
+6. Rascunhos de entrega/venda são somente preparação do formulário; confirmação física/financeira é uma única operação. Não foram criados pedidos administrativos a partir de WhatsApp. A antiga rota /admin/pedidos redireciona a vendas; o menu tem módulos reais.
+7. Cliente identificado em todas as operações, retorno físico obrigatório em devoluções de venda e confirmação de devolução financeira excedente. Não inventar política para venda anônima, perda depois de vendida ou descontos/métodos mistos. As restrições estão visíveis nas telas.
+8. Snapshot antigo desconhecido não é preenchido com cadastro atual. Novas linhas fotografam nome/descrição/categoria e preço; alterações futuras não modificam histórico.
+9. Auditoria inicial identificou quatro alertas em Vite/esbuild e React Router. Atualização controlada para Vite 7.3.7 + plugin React 5.2.0 e React Router DOM 7.18.5, mantendo React 18 e o modo declarativo. Requer Node 24+ na rotina do projeto. Não foi usado audit fix --force. Resultados finais constam no relatório.
+10. PostgreSQL nativo é real; Auth/Storage de sua fixture são contratos mínimos. O teste Chromium liga as RPCs a esse PostgreSQL através de transporte controlado, com sessão de teste. Isso não comprova PostgREST/Auth/Storage reais do Supabase. Docker/CLI não estão disponíveis nesta sessão; não se usa banco real implicitamente a partir de .env.local.
+11. Não modificar PROJECT_CONTEXT.md para fingir que a descrição do ZIP é o estado atual. Este conjunto de documentos e PROJECT_PROGRESS.md registram a evolução e os limites.
+12. Campos de formulário preservam os textos administrativos já existentes; layout novo usa os mesmos tokens. Menu móvel passa a rolagem horizontal para não ocupar grande parte da tela. Dialog impede cancelamento nativo de fechar uma operação em andamento sem atualizar seu estado React.
+
+Referências primárias para a atualização controlada: [migração Vite 7](https://v7.vite.dev/guide/migration), [changelog React Router](https://reactrouter.com/changelog). Os testes e o build do projeto, e não apenas a documentação dos fornecedores, determinaram o resultado reportado.
+
+## V4.1 — decisões de exclusão
+
+- O prompt V4.1 do proprietário autoriza desenvolvimento/testes de exclusão, substituindo a proibição geral anterior de apagar cadastros. Não autoriza excluir dados existentes nem aplicar migrações em produção nesta sessão. Testes usam somente dados fictícios descartáveis.
+- A criação de cliente sempre produz auditoria. Para evitar uma funcionalidade de exclusão impossível e sem apagar auditoria, customer_audit.customer_id passa a referenciar um registro permanente de identidade. IDs e snapshots permanecem intactos; não se usa SET NULL, CASCADE ou remoção silenciosa da auditoria.
+- Auditoria de UPDATE conta como histórico relevante e bloqueia exclusão, mesmo sem venda. Arquivar/reativar continua possível. É uma interpretação conservadora explícita do requisito de preservar históricos relevantes.
+- Fotos são dependências que bloqueiam exclusão de peça. Não automatizar remoção remota de arquivos nem fingir atomicidade entre PostgreSQL e Storage. Este comportamento é apresentado no modal.
+- Reativação de produto mantém o cadastro inativo até Ativar, preservando o comportamento prévio. Novas vendas de peças arquivadas são bloqueadas também na RPC, mesmo se originadas em condicional; devoluções antigas seguem disponíveis.
+- A elegibilidade verifica também FKs desconhecidas; não tentar superar uma FK com cascata. [Locks de PostgreSQL](https://www.postgresql.org/docs/17/explicit-locking.html) dão suporte à serialização e à proteção de referências concorrentes. [Storage usa API própria para objetos](https://supabase.com/docs/guides/storage/management/delete-objects); nenhum arquivo é apagado por esta operação.

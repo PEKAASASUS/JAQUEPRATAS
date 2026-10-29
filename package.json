@@ -1,0 +1,38 @@
+{
+  "name": "jackpratas",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "tsx --test src/lib/*.test.ts",
+    "test:db": "node --test --test-isolation=none tests/database/*.test.mjs",
+    "test:browser": "JAQUE_BROWSER_TEST=1 node --test --test-isolation=none --test-name-pattern=navegador tests/database/management.test.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "7.18.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "5.2.0",
+    "embedded-postgres": "17.10.0-beta.17",
+    "playwright": "1.62.1",
+    "tsx": "^4.19.0",
+    "typescript": "~5.6.3",
+    "vite": "7.3.7"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "esbuild@0.21.5": true,
+    "@embedded-postgres/linux-x64@17.10.0-beta.17": true
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

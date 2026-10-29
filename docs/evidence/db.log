@@ -1,0 +1,31 @@
+✔ migrações aplicam integralmente em PostgreSQL nativo; RLS e grants de todas as tabelas privadas (500.616088ms)
+✔ anon lê somente catálogo/categorias e não acessa gestão (9.881108ms)
+✔ autenticado sem autorização vê zero linhas privadas; admin lê os registros (17.967192ms)
+✔ nenhum papel da API, nem admin, escreve diretamente nas tabelas novas (42.444678ms)
+✔ não administrador não se promove via admin_users e revogação remove leitura imediatamente (1.358959ms)
+✔ funções auxiliares privadas não podem ser chamadas por anon/authenticated (0.927243ms)
+✔ preços históricos em decimal: promoção + Pix, soma de unidades e snapshot imutável (2.340188ms)
+✔ histórico impede alteração, exclusão e truncate; cliente usa atualização auditada (13.278682ms)
+✔ constraints rejeitam quantidades/valores inválidos e vínculos inconsistentes (3.736137ms)
+✔ catálogo e leitura de gestão não causam saídas ou recebimentos (0.903365ms)
+✔ falha de integridade desfaz a transação inteira, inclusive auditoria (1.005095ms)
+✔ chave de operação impede duplicação com duas conexões concorrentes (10.438003ms)
+✔ cartão/standard preservam preço integral; zero e Pix acumulativo seguem regra do catálogo (5.476034ms)
+✔ cliente da condicional e origem/produto/método da venda são coerentes por FK (1.515648ms)
+✔ RPCs bloqueiam visitante e login sem admin, inclusive snapshot financeiro (2.575244ms)
+✔ venda direta calcula preço no backend, pagamento parcial/estorno e replay idempotente (13.618988ms)
+✔ condicional: saída física, retorno/perda/compra parciais, devolução de venda e correção auditável (18.67286ms)
+✔ venda à vista exige quitação, snapshot de cliente/produto e cancelamento integral atômico (14.593028ms)
+✔ estoque exige motivo, impede edição direta e não admite ajuste negativo além do disponível (4.624486ms)
+✔ concorrência real: somente uma venda consegue a última unidade (21.452894ms)
+﹣ navegador: catálogo preservado e gestão conectada ao PostgreSQL isolado (0.114328ms) # SKIP
+✔ script único para SQL Editor executa integralmente e desfaz fixtures (12.911659ms)
+✔ venda com promoção zero continua válida; categoria/descrição históricas e preço Pix são protegidos (6.505891ms)
+ℹ tests 23
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 763.165353
