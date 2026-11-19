@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import Dialog from '../components/Dialog'
 import RecordActionDialog, { type RecordActionTarget } from './RecordActionDialog'
 import { formatBRL, parseBRLInput, toCents, pixCents } from '../lib/money'
 import { buildCSV, withinPeriod } from '../lib/management'
 import { executeManagement, loadManagement, type Snapshot, type Customer, type Sale } from './services'
 
-type Mode = 'dashboard' | 'customers' | 'stock' | 'conditionals' | 'sales' | 'payments' | 'reports'
-const titles: Record<Mode, string> = { dashboard: 'Início', customers: 'Clientes', stock: 'Estoque', conditionals: 'Condicionais', sales: 'Vendas', payments: 'Recebimentos e contas a receber', reports: 'Relatórios' }
+type Mode = 'dashboard' | 'customers' | 'sales' | 'reports'
+const titles: Record<Mode, string> = { dashboard: 'Início', customers: 'Clientes', sales: 'Vendas', reports: 'Relatórios' }
 const money = (value: number) => formatBRL(toCents(value))
 const date = (value: string | null) => value ? new Date(value).toLocaleString('pt-BR') : '—'
 const names: Record<string, string> = { pix: 'Pix', card: 'Cartão', standard: 'Preço integral', cash: 'Dinheiro', bank_transfer: 'Transferência', return: 'Retorno', loss: 'Perda/dano', sale: 'Compra', reversal: 'Reversão', immediate: 'À vista', store_credit: 'Crédito da loja' }
@@ -19,6 +20,9 @@ interface CartLine { product_id: string; quantity: number }
 interface Action { action: string; title: string; id: string; max?: number; amount?: number }
 
 export default function ManagementPage({ mode }: { mode: Mode }) {
+ const [searchParams, setSearchParams] = useSearchParams()
+ const showReceipts = mode === 'sales' && searchParams.get('aba') === 'recebimentos'
+ const setSalesView = (receipts: boolean) => { const next = new URLSearchParams(searchParams); if (receipts) next.set('aba', 'recebimentos'); else next.delete('aba'); setSearchParams(next) }
  const [data, setData] = useState<Snapshot | null>(null)
  const [loading, setLoading] = useState(true)
  const [error, setError] = useState('')
@@ -38,6 +42,7 @@ export default function ManagementPage({ mode }: { mode: Mode }) {
  const [editing, setEditing] = useState<Customer | 'new' | null>(null)
  const [history, setHistory] = useState('')
  const [cartType, setCartType] = useState<'sale' | 'conditional' | null>(null)
+ const [productSearch, setProductSearch] = useState('')
  const [cart, setCart] = useState<CartLine[]>([])
  const [cartCustomer, setCartCustomer] = useState('')
  const [cartConditional, setCartConditional] = useState('')
@@ -66,7 +71,6 @@ export default function ManagementPage({ mode }: { mode: Mode }) {
  }
  if (!data && loading) return <p className="state" role="status">Carregando gestão…</p>
  if (!data) return <section><h1 className="admin-h1">{titles[mode]}</h1><p role="alert">{error}</p><button className="btn btn-primary" onClick={() => void load()}>Tentar novamente</button></section>
- const customerName = (id: string) => data.customers.find(c => c.id === id)?.name ?? 'Cliente'
  const customerMatches = (id: string) => !customerFilter || id === customerFilter
  const filteredSales = data.sales.filter(s => customerMatches(s.customer_id) && withinPeriod(s.sold_at, start, end)
   && (!methodFilter || s.pricing_method === methodFilter || data.payments.some(p => p.sale_id === s.id && p.method === methodFilter))
@@ -82,9 +86,6 @@ export default function ManagementPage({ mode }: { mode: Mode }) {
  const cashOut = data.payment_reversals.filter(r => withinPeriod(r.created_at, start, end) && data.payments.some(p => p.id === r.payment_id && (!methodFilter || p.method === methodFilter) && data.sales.some(s => s.id === p.sale_id && customerMatches(s.customer_id) && (!productFilter || data.sale_items.some(l => l.sale_id === s.id && l.product_id === productFilter)) && (!categoryFilter || data.sale_items.some(l => l.sale_id === s.id && l.category_id === categoryFilter)))))
  const cartTotal = cart.reduce((sum, l) => { const p = data.products.find(p => p.id === l.product_id); const cents = p ? toCents(p.promo_price ?? p.price) : 0; return sum + (pricing === 'pix' ? pixCents(cents) : cents) * l.quantity }, 0)
  const shownCustomers = data.customers.filter(c => `${c.name} ${c.phone}`.toLowerCase().includes(query.toLowerCase()) && (statusFilter === 'archived' ? c.archived_at : !c.archived_at))
- const shownProducts = data.products.filter(p => `${p.name} ${p.category}`.toLowerCase().includes(query.toLowerCase()) && (!categoryFilter || p.category_id === categoryFilter)
-  && (!statusFilter || (statusFilter === 'low' ? p.stock_quantity <= 2 : statusFilter === 'conditional' ? p.in_conditional > 0 : p.archived_at !== null)))
- const shownConditionals = data.conditionals.filter(c => customerMatches(c.customer_id) && withinPeriod(c.delivered_at, start, end) && (!statusFilter || (statusFilter === 'open' ? c.pending > 0 : c.pending === 0)))
  const stats = [
   ['Vendido no período (líquido de reversões)', formatBRL(filteredSales.reduce((sum, s) => sum + toCents(s.net_total), 0))],
   ['Recebimentos no período', formatBRL(filteredPayments.reduce((sum, p) => sum + toCents(p.amount), 0))],
@@ -94,14 +95,12 @@ export default function ManagementPage({ mode }: { mode: Mode }) {
   ['Unidades devolvidas de vendas no período', data.sale_reversals.filter(r => withinPeriod(r.created_at, start, end) && data.sale_items.some(l => l.id === r.sale_item_id && (!productFilter || l.product_id === productFilter) && (!categoryFilter || l.category_id === categoryFilter) && data.sales.some(s => s.id === l.sale_id && customerMatches(s.customer_id)))).reduce((n, r) => n + Number(r.quantity ?? 0), 0)],
   ['Produtos com estoque baixo (até 2)', data.products.filter(p => p.is_active && !p.archived_at && p.stock_quantity <= 2).length],
   ['Vendas no período', filteredSales.length],
-  ['Condicionais abertas', data.conditionals.filter(c => c.pending > 0 && customerMatches(c.customer_id)).length],
   ['Unidades disponíveis', data.products.reduce((sum, p) => sum + p.stock_quantity, 0)],
-  ['Unidades em condicional', data.products.reduce((sum, p) => sum + Number(p.in_conditional), 0)],
  ]
  const openCart = (type: 'sale' | 'conditional', conditionalId = '') => {
   if (conditionalId && data.customers.some(c => c.id === data.conditionals.find(v => v.id === conditionalId)?.customer_id && c.archived_at)) { setNotice('Reative o cliente arquivado antes de registrar uma nova venda. Retornos continuam disponíveis.'); return }
   setNotice(''); setCartType(type); setCartConditional(conditionalId); setCartCustomer(data.conditionals.find(c => c.id === conditionalId)?.customer_id ?? '')
-  setCart([]); setPricing('card'); setPaymentMethod('card'); setTerms('immediate')
+  setCart([]); setProductSearch(''); setPricing('card'); setPaymentMethod('card'); setTerms('immediate')
  }
  const filters = <div className="management-filters">
   <label className="field">Cliente<select value={customerFilter} onChange={e => setCustomerFilter(e.target.value)}><option value="">Todos</option>{data.customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
@@ -140,7 +139,6 @@ export default function ManagementPage({ mode }: { mode: Mode }) {
   const f = new FormData(e.currentTarget); const quantity = Number(f.get('quantity')); const cents = parseBRLInput(String(f.get('amount') ?? ''))
   let payload: Record<string, unknown> = { reason: f.get('reason') }
   switch (action.action) {
-   case 'stock_adjust': payload = { ...payload, product_id: action.id, delta: Number(f.get('delta')), kind: f.get('kind') }; break
    case 'conditional_resolve': payload = { ...payload, item_id: action.id, quantity, kind: f.get('kind') }; break
    case 'conditional_reverse': payload = { ...payload, event_id: action.id }; break
    case 'sale_reverse': payload = { ...payload, item_id: action.id, quantity, restock: f.get('restock') === 'on', refund_confirmed: f.get('refund_confirmed') === 'on' }; break
@@ -155,8 +153,8 @@ export default function ManagementPage({ mode }: { mode: Mode }) {
   <div className="admin-head"><h1 className="admin-h1">{titles[mode]}</h1><button className="btn btn-ghost btn-sm" disabled={busy || loading} onClick={() => void load()}>Atualizar dados</button></div>
   {notice && <p className="notice-box" role="status">{notice}</p>}{error && <p className="form-error" role="alert">{error}</p>}
   {loading && <p role="status">Atualizando…</p>}
-  {['dashboard', 'conditionals', 'sales', 'payments', 'reports'].includes(mode) && filters}
-  {['dashboard', 'reports', 'sales', 'payments'].includes(mode) && <div className="management-filters">
+  {['dashboard', 'sales', 'reports'].includes(mode) && filters}
+  {['dashboard', 'reports', 'sales'].includes(mode) && <div className="management-filters">
    <label className="field">Produto<select value={productFilter} onChange={e => setProductFilter(e.target.value)}><option value="">Todos</option>{data.products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
    <label className="field">Categoria<select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}><option value="">Todas</option>{[...new Map(data.products.map(p => [p.category_id, p.category])).entries()].map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
    <label className="field">Forma<select value={methodFilter} onChange={e => setMethodFilter(e.target.value)}><option value="">Todas</option>{['pix', 'card', 'cash', 'bank_transfer'].map(v => <option key={v} value={v}>{label(v)}</option>)}</select></label>
@@ -174,23 +172,11 @@ export default function ManagementPage({ mode }: { mode: Mode }) {
     {history === c.id && <div><h3>Vendas e saldo</h3>{data.sales.filter(s => s.customer_id === c.id).map(saleCard)}<h3>Condicionais</h3>{data.conditionals.filter(v => v.customer_id === c.id).map(v => <p key={v.id}>{date(v.delivered_at)} · {v.pending} peças pendentes · Cliente na entrega: {v.customer_name || c.name}</p>)}<h3>Recebimentos</h3>{data.payments.filter(p => saleById(p.sale_id)?.customer_id === c.id).map(p => <p key={p.id}>{date(p.received_at)} · {label(p.method)} · {money(p.amount)} · Estornado: {money(p.reversed)}</p>)}<h3>Auditoria do cadastro</h3>{data.customer_audit.filter(a => a.customer_id === c.id).map(a => <p key={a.id}>{date(a.created_at)} · {a.action}</p>)}</div>}
    </article>)}{!shownCustomers.length && <p className="state">Nenhum cliente neste filtro.</p>}
   </>}
-  {mode === 'stock' && <>
-   <div className="management-filters"><label className="field">Pesquisar produto/categoria<input value={query} onChange={e => setQuery(e.target.value)} /></label><label className="field">Filtro<select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="">Todos</option><option value="low">Estoque baixo (até 2)</option><option value="conditional">Em condicional</option><option value="archived">Arquivados</option></select></label><button className="btn btn-ghost" onClick={() => exportCSV('estoque.csv', [['Produto', 'Categoria', 'Disponível', 'Em condicional', 'Físico total em posse da loja/clientes'], ...shownProducts.map(p => [p.name, p.category, p.stock_quantity, p.in_conditional, p.stock_quantity + Number(p.in_conditional)])])}>Exportar estoque CSV</button></div>
-   <p className="fine">Disponível: peças na loja. Em condicional: peças com clientes ainda sem destino. Total físico sob controle da loja = disponível + pendente em condicional.</p>
-   {shownProducts.map(p => <article className="management-card" key={p.id}><h2>{p.name}</h2><p>{p.category} · Disponível: <b>{p.stock_quantity}</b> · Em condicional: <b>{p.in_conditional}</b> · Total físico: {p.stock_quantity + Number(p.in_conditional)}</p><button className="btn btn-ghost btn-sm" onClick={() => openAction({ action: 'stock_adjust', id: p.id, title: `Ajustar estoque: ${p.name}` })}>Entrada / ajuste / perda</button><details><summary>Histórico de movimentos</summary>{data.movements.filter(m => m.product_id === p.id).map(m => <p key={m.id}>{date(m.created_at)} · {m.movement_type} · {m.quantity_delta > 0 ? '+' : ''}{m.quantity_delta} · Saldo: {m.quantity_after} · {m.origin}</p>)}{data.events.filter(e => data.conditional_items.some(i => i.id === e.conditional_item_id && i.product_id === p.id)).map(e => <p key={e.id}>{date(e.created_at)} · Condicional: {label(e.kind)} · {e.quantity} · {e.reason} (destino físico; sem nova baixa)</p>)}</details></article>)}{!shownProducts.length && <p className="state">Nenhum produto neste filtro.</p>}
+  {mode === 'sales' && <>
+   <div className="sales-actions"><button className="btn btn-primary" onClick={() => openCart('sale')}>Registrar venda direta</button><button className="btn btn-ghost" aria-pressed={showReceipts} onClick={() => setSalesView(!showReceipts)}>Recebimentos</button>{showReceipts && <button className="btn btn-ghost" onClick={() => setSalesView(false)}>Ver vendas</button>}</div>
+   {!showReceipts && <>{filteredSales.map(saleCard)}{!filteredSales.length && <p className="state">Nenhuma venda neste filtro.</p>}</>}
   </>}
-  {mode === 'conditionals' && <>
-   <div className="management-filters"><button className="btn btn-primary" onClick={() => openCart('conditional')}>Preparar entrega física</button><label className="field">Estado<select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="">Todos</option><option value="open">Em andamento</option><option value="closed">Concluídas</option></select></label></div>
-   {shownConditionals.map(c => <article className="management-card" key={c.id}><h2>{c.customer_name || customerName(c.customer_id)}</h2><p>{date(c.delivered_at)} · {c.pending > 0 ? `${c.pending} peças pendentes` : 'Concluída: todas as peças têm destino'} · Prazo: {date(c.due_at)}</p><p>{c.notes}</p>{c.pending > 0 && <button className="btn btn-primary btn-sm" onClick={() => openCart('sale', c.id)}>Registrar compra parcial ou total</button>}
-    {data.conditional_items.filter(i => i.conditional_id === c.id).map(i => <div key={i.id} className="management-line"><span>{i.product_name} · Entregues: {i.quantity_out} · Pendentes: {i.pending}
-      {(() => { const events = data.events.filter(e => e.conditional_item_id === i.id && e.kind !== 'reversal' && !data.events.some(v => v.reverses_event_id === e.id)); const sold = events.filter(e => e.kind === 'sale').reduce((n, e) => n + e.quantity, 0); const reversed = data.sale_items.filter(l => data.sales.some(s => s.id === l.sale_id && s.conditional_id === c.id) && l.product_id === i.product_id).reduce((n, l) => n + l.reversed, 0); return ` · Compradas: ${sold - reversed} · Devolvidas: ${events.filter(e => e.kind === 'return').reduce((n, e) => n + e.quantity, 0) + reversed} · Perdidas/danificadas: ${events.filter(e => e.kind === 'loss').reduce((n, e) => n + e.quantity, 0)}` })()}
-     </span>{i.pending > 0 && <button className="btn btn-ghost btn-sm" onClick={() => openAction({ action: 'conditional_resolve', id: i.id, title: `Retorno/perda: ${i.product_name}`, max: i.pending })}>Registrar destino</button>}
-     <details><summary>Eventos e correções</summary>{data.events.filter(e => e.conditional_item_id === i.id).map(e => <p key={e.id}>{date(e.created_at)} · {label(e.kind)} · {e.quantity} · {e.reason}{['return', 'loss'].includes(e.kind) && !data.events.some(v => v.reverses_event_id === e.id) && <button className="link" onClick={() => openAction({ action: 'conditional_reverse', id: e.id, title: 'Desfazer evento da condicional' })}>Desfazer com motivo</button>}</p>)}</details>
-    </div>)}
-   </article>)}{!shownConditionals.length && <p className="state">Nenhuma condicional neste filtro.</p>}
-  </>}
-  {mode === 'sales' && <><button className="btn btn-primary" onClick={() => openCart('sale')}>Registrar venda direta</button>{filteredSales.map(saleCard)}{!filteredSales.length && <p className="state">Nenhuma venda neste filtro.</p>}</>}
-  {mode === 'payments' && <><h2>Contas a receber</h2>{filteredSales.filter(s => Number(s.balance) > 0).map(saleCard)}{!filteredSales.some(s => Number(s.balance) > 0) && <p className="state">Nenhum saldo a receber neste filtro.</p>}<h2>Recebimentos</h2>{filteredPayments.map(p => <article className="management-card" key={p.id}><h3>{saleById(p.sale_id)?.customer_name || 'Cliente'} · {label(p.method)}</h3><p>{date(p.received_at)} · Recebido: {money(p.amount)} · Estornado: {money(p.reversed)}</p>{Number(p.amount) > Number(p.reversed) && <button className="btn btn-ghost btn-sm" onClick={() => openAction({ action: 'payment_reverse', id: p.id, title: 'Estornar recebimento', amount: (toCents(p.amount) - toCents(p.reversed)) / 100 })}>Estornar com motivo</button>}{data.payment_reversals.filter(r => r.payment_id === p.id).map(r => <p key={r.id}>{date(r.created_at)} · Estorno {money(r.amount ?? 0)} · {r.reason}</p>)}</article>)}</>}
+  {showReceipts && <><h2>Contas a receber</h2>{filteredSales.filter(s => Number(s.balance) > 0).map(saleCard)}{!filteredSales.some(s => Number(s.balance) > 0) && <p className="state">Nenhum saldo a receber neste filtro.</p>}<h2>Recebimentos</h2>{!filteredPayments.length && <p className="state">Nenhum recebimento neste filtro.</p>}{filteredPayments.map(p => <article className="management-card" key={p.id}><h3>{saleById(p.sale_id)?.customer_name || 'Cliente'} · {label(p.method)}</h3><p>{date(p.received_at)} · Recebido: {money(p.amount)} · Estornado: {money(p.reversed)}</p>{Number(p.amount) > Number(p.reversed) && <button className="btn btn-ghost btn-sm" onClick={() => openAction({ action: 'payment_reverse', id: p.id, title: 'Estornar recebimento', amount: (toCents(p.amount) - toCents(p.reversed)) / 100 })}>Estornar com motivo</button>}{data.payment_reversals.filter(r => r.payment_id === p.id).map(r => <p key={r.id}>{date(r.created_at)} · Estorno {money(r.amount ?? 0)} · {r.reason}</p>)}</article>)}</>}
 
   <RecordActionDialog target={recordAction} onClose={() => setRecordAction(null)} onDone={async message => { setRecordAction(null); setHistory(''); setNotice(message); await load() }} />
   <Dialog open={editing !== null} onClose={() => { if (!busy) setEditing(null) }} label="Cadastro de cliente" className="modal">
@@ -207,10 +193,22 @@ export default function ManagementPage({ mode }: { mode: Mode }) {
   <Dialog open={cartType !== null} onClose={() => { if (!busy) setCartType(null) }} label="Preparar operação" className="modal">
    {cartType && <form className="pform" onSubmit={e => void saveCart(e)}><h2>{cartType === 'conditional' ? 'Confirmar entrega física' : cartConditional ? 'Venda de condicional' : 'Venda direta'}</h2>{notice && <p className="notice-box" role="alert">{notice}</p>}
     <label className="field">Cliente<select required value={cartCustomer} disabled={Boolean(cartConditional)} onChange={e => setCartCustomer(e.target.value)}><option value="">Selecione</option>{data.customers.filter(c => !c.archived_at).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
-    <label className="field">Adicionar produto<select value="" onChange={e => { if (e.target.value && !cart.some(l => l.product_id === e.target.value)) setCart([...cart, { product_id: e.target.value, quantity: 1 }]) }}><option value="">Selecione</option>{data.products.filter(p => !p.archived_at && (cartConditional ? data.conditional_items.some(i => i.conditional_id === cartConditional && i.product_id === p.id && i.pending > 0) : p.is_active && p.stock_quantity > 0)).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
-    {cart.map(l => { const p = data.products.find(p => p.id === l.product_id)!; const max = cartConditional ? data.conditional_items.find(i => i.conditional_id === cartConditional && i.product_id === l.product_id)?.pending ?? 0 : p.stock_quantity; return <div className="management-line" key={l.product_id}><label className="field">{p.name} (máximo atual {max})<input type="number" required min={1} max={max} value={l.quantity} onChange={e => setCart(cart.map(v => v.product_id === l.product_id ? { ...v, quantity: Number(e.target.value) } : v))} /></label><button className="link" type="button" onClick={() => setCart(cart.filter(v => v.product_id !== l.product_id))}>Remover</button></div> })}
+    <fieldset className="sale-picker" disabled={busy}>
+     <legend>Selecionar produtos</legend>
+     <p className="fine">Marque todos os produtos desta venda. As quantidades e os valores serão somados abaixo.</p>
+     <label className="field">Buscar produto<input type="search" value={productSearch} onChange={e => setProductSearch(e.target.value)} /></label>
+     <div className="sale-picker-list">
+      {data.products.filter(p => !p.archived_at && (cartConditional ? data.conditional_items.some(i => i.conditional_id === cartConditional && i.product_id === p.id && i.pending > 0) : p.is_active && p.stock_quantity > 0)).filter(p => `${p.name} ${p.category}`.toLocaleLowerCase('pt-BR').includes(productSearch.toLocaleLowerCase('pt-BR'))).map(p => <label className="check sale-picker-option" key={p.id}>
+       <input type="checkbox" checked={cart.some(l => l.product_id === p.id)} onChange={e => { const checked = e.target.checked; setCart(previous => checked ? previous.some(l => l.product_id === p.id) ? previous : [...previous, { product_id: p.id, quantity: 1 }] : previous.filter(l => l.product_id !== p.id)) }} />
+       <span>{p.name}<small>{formatBRL(pricing === 'pix' ? pixCents(toCents(p.promo_price ?? p.price)) : toCents(p.promo_price ?? p.price))} por unidade · Disponível: {p.stock_quantity}</small></span>
+      </label>)}
+     </div>
+    </fieldset>
+    <h3>Itens selecionados ({cart.length})</h3>
+    {!cart.length && <p className="fine">Selecione pelo menos um produto na lista acima.</p>}
+    {cart.map(l => { const p = data.products.find(p => p.id === l.product_id)!; const max = cartConditional ? data.conditional_items.find(i => i.conditional_id === cartConditional && i.product_id === l.product_id)?.pending ?? 0 : p.stock_quantity; const base = toCents(p.promo_price ?? p.price); const unit = pricing === 'pix' ? pixCents(base) : base; return <div className="management-line" key={l.product_id}><label className="field">{p.name} (máximo atual {max})<input type="number" required min={1} max={max} value={l.quantity} onChange={e => setCart(cart.map(v => v.product_id === l.product_id ? { ...v, quantity: Number(e.target.value) } : v))} /></label><span>{formatBRL(unit)} × {l.quantity} = <b>{formatBRL(unit * l.quantity)}</b></span><button className="link" type="button" onClick={() => setCart(cart.filter(v => v.product_id !== l.product_id))}>Remover</button></div> })}
     {cartType === 'sale' && <><label className="field">Preço<select value={pricing} onChange={e => { setPricing(e.target.value); setPaymentMethod(e.target.value === 'pix' ? 'pix' : e.target.value === 'card' ? 'card' : 'cash') }}><option value="card">Cartão — preço integral</option><option value="pix">Pix — 10% acumulativo</option><option value="standard">Dinheiro/transferência — preço integral</option></select></label>
-     <p>Total estimado: <b>{formatBRL(cartTotal)}</b></p>
+     <p className="sale-total" role="status">Total da venda: <b>{formatBRL(cartTotal)}</b></p>
      <label className="field">Condição de recebimento<select value={terms} onChange={e => setTerms(e.target.value)}><option value="immediate">À vista (recebimento integral)</option><option value="store_credit">Crédito concedido pela loja (permite parcial)</option></select></label>
      <label className="field">Método do recebimento<select name="payment_method" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>{['pix', 'card', 'cash', 'bank_transfer'].map(v => <option key={v} value={v}>{label(v)}</option>)}</select></label>
      {terms === 'store_credit' && <label className="field">Recebido agora (R$; zero se nada entrou)<input name="received" defaultValue="0" required inputMode="decimal" /></label>}
@@ -225,7 +223,6 @@ export default function ManagementPage({ mode }: { mode: Mode }) {
   <Dialog open={action !== null} onClose={() => { if (!busy) setAction(null) }} label={action?.title ?? 'Operação'} className="modal">
    {action && <form className="pform" onSubmit={e => void saveAction(e)} key={`${action.action}:${action.id}`}><h2>{action.title}</h2>{notice && <p className="notice-box" role="alert">{notice}</p>}
     {action.max !== undefined && <label className="field">Quantidade<input name="quantity" type="number" required min={1} max={action.max} defaultValue={1} /></label>}
-    {action.action === 'stock_adjust' && <><label className="field">Tipo<select name="kind"><option value="entry">Entrada</option><option value="adjust">Ajuste</option><option value="loss">Perda/dano</option></select></label><label className="field">Variação (use número negativo para saída/perda)<input name="delta" type="number" required step={1} /></label></>}
     {action.action === 'conditional_resolve' && <label className="field">Destino<select name="kind"><option value="return">Retorno físico à loja</option><option value="loss">Perda/dano — sem retorno ao disponível</option></select></label>}
     {action.amount !== undefined && <label className="field">Valor em R$ (máximo {money(action.amount)})<input name="amount" required inputMode="decimal" /></label>}
     {action.action === 'payment_add' && <><label className="field">Método<select name="method">{['pix', 'card', 'cash', 'bank_transfer'].map(v => <option key={v} value={v}>{label(v)}</option>)}</select></label><label className="field">Data do recebimento (vazio = agora)<input type="datetime-local" name="received_at" /></label></>}

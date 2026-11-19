@@ -23,3 +23,7 @@ Referências primárias para a atualização controlada: [migração Vite 7](htt
 - Fotos são dependências que bloqueiam exclusão de peça. Não automatizar remoção remota de arquivos nem fingir atomicidade entre PostgreSQL e Storage. Este comportamento é apresentado no modal.
 - Reativação de produto mantém o cadastro inativo até Ativar, preservando o comportamento prévio. Novas vendas de peças arquivadas são bloqueadas também na RPC, mesmo se originadas em condicional; devoluções antigas seguem disponíveis.
 - A elegibilidade verifica também FKs desconhecidas; não tentar superar uma FK com cascata. [Locks de PostgreSQL](https://www.postgresql.org/docs/17/explicit-locking.html) dão suporte à serialização e à proteção de referências concorrentes. [Storage usa API própria para objetos](https://supabase.com/docs/guides/storage/management/delete-objects); nenhum arquivo é apagado por esta operação.
+
+## Simplificação do painel — 09/11/2026
+
+- A solicitação atual substitui a separação visual entre Produtos e Estoque: uma única lista de produtos, com movimentações por peça. Mantidos saldos, eventos e a RPC de ajuste; o endereço antigo redireciona para Produtos para preservar favoritos.

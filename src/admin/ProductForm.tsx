@@ -135,7 +135,7 @@ export default function ProductForm({ product, categories, onSaved, onImagesChan
           <input disabled={Boolean(product)} inputMode="numeric" value={stock} onChange={e => setStock(e.target.value)} />
         </label>
       </div>
-      {product && <p className="fine">Para alterar quantidades, use Estoque: entrada, ajuste ou perda com motivo auditável.</p>}
+      {product && <p className="fine">Para alterar quantidades, feche este formulário e use “Movimentações” na lista de produtos.</p>}
       <label className="field">Material
         <input value={material} onChange={e => setMaterial(e.target.value)} maxLength={120} />
       </label>

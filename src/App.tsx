@@ -13,8 +13,8 @@ export default function App() {
       <div className="setup-warning" role="alert">
         <h1>Configuração pendente</h1>
         <p>
-          Defina <code>VITE_SUPABASE_URL</code> e <code>VITE_SUPABASE_ANON_KEY</code> no arquivo{' '}
-          <code>.env.local</code> (veja o <code>.env.example</code> e o README) e reinicie o servidor.
+          Preencha <code>VITE_SUPABASE_URL</code> com a URL http/https do projeto e <code>VITE_SUPABASE_ANON_KEY</code> com a chave pública real no arquivo{' '}
+          <code>.env.local</code>, na mesma pasta do package.json, e reinicie o servidor. Substitua os textos de exemplo pelos dados do seu projeto Supabase de testes.
         </p>
       </div>
     )
@@ -28,10 +28,10 @@ export default function App() {
         <Route path="produtos" element={<ProductsPage />} />
         <Route path="pedidos" element={<Navigate to="/admin/vendas" replace />} />
         <Route path="clientes" element={<ManagementPage mode="customers" />} />
-<Route path="estoque" element={<ManagementPage mode="stock" />} />
-<Route path="condicionais" element={<ManagementPage mode="conditionals" />} />
+<Route path="estoque" element={<Navigate to="/admin/produtos" replace />} />
+<Route path="condicionais" element={<Navigate to="/admin" replace />} />
 <Route path="vendas" element={<ManagementPage mode="sales" />} />
-<Route path="recebimentos" element={<ManagementPage mode="payments" />} />
+<Route path="recebimentos" element={<Navigate to="/admin/vendas?aba=recebimentos" replace />} />
 <Route path="relatorios" element={<ManagementPage mode="reports" />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

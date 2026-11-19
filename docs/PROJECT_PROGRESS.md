@@ -68,3 +68,40 @@ Testes nativos e Chromium ampliados. Primeira rodada: 33 casos PostgreSQL aprova
 - **44 unitários/estáticos + 37 PostgreSQL + 1 fluxo Chromium aprovados = 82 casos, zero falhas.** O navegador é ignorado em test:db e executado separadamente em test:browser. TypeScript e build passaram (Vite 7.3.7, 110 módulos).
 - Migração sobre base V4.0 populada preservou cadastros e auditorias; exclusão concorrente/entrega testada nas duas ordens, além de rollback e dependências desconhecidas. Capturas dos modais inspecionadas visualmente.
 - Relatório V4_1_EXCLUSAO.md, evidências em evidence-v4.1; script tests_v41_sql_editor.sql pronto para homologação em Supabase exclusivo de testes. Não foi aplicado ao remoto, dados reais não foram excluídos e não houve push/publicação.
+
+## Simplificação do painel — 09/11/2026
+
+- Removida a página independente de Estoque e sua entrada no menu, conforme pedido do proprietário. `/admin/estoque` redireciona para `/admin/produtos`.
+- Produtos reúne cadastro e quantidade; o botão Movimentações de cada peça abre saldos disponível/em condicional/total físico, entrada/ajuste/perda e histórico. Operações continuam pela RPC protegida e com chave de idempotência; edição comum não sobrescreve saldo. Removidos a listagem duplicada e seus filtros/exportação de estoque.
+- Teste Chromium atualizado para conferir menu sem Estoque, redirecionamento e entrada pela linha do produto com atualização do saldo.
+- Validação: 44 testes unitários/estáticos e 37 testes PostgreSQL aprovados; fluxo Chromium aprovado; TypeScript/build aprovados. Audit offline reportou zero vulnerabilidades, sem consulta atual à base online. A primeira execução unitária foi bloqueada por sockets do sandbox e foi repetida com sucesso fora dessa restrição. Uma colisão de nome de variável no teste foi corrigida antes da rodada aprovada.
+- Testes usam banco isolado e transporte Auth/API de fixture; não comprovam integração Supabase remoto. Sem migrações, dados reais, push ou deploy.
+
+## Inicialização com configuração de exemplo — 09/11/2026
+
+- Diagnosticada tela branca: `.env.local` contém placeholders e a validação anterior aceitava a URL inválida, causando falha em createClient antes de renderizar React. Nenhum valor de ambiente foi impresso ou alterado.
+- Validação de URL http/https e rejeição da chave placeholder adicionadas em supabase.ts; aviso de configuração esclarece onde preencher dados reais de testes. TypeScript e sete casos de validação passaram. Chromium confirmou aviso visível sem erros de execução com o ambiente atual e acesso externo bloqueado.
+
+## Remoção da seção Condicionais — 16/11/2026
+
+- Removidos item do menu, página e modo de renderização de Condicionais. O endereço /admin/condicionais redireciona ao início do painel. Banco, históricos e fluxo público do catálogo preservados.
+- Teste de navegador confere ausência do menu e do botão de entrega física, redirecionamento e fluxo de venda direta/recebimento/cancelamento. Testes de regras de condicionais no banco permanecem.
+- Validação: 44 testes unitários/estáticos, fluxo Chromium com PostgreSQL descartável e TypeScript/build aprovados. Sem alteração no banco remoto ou publicação.
+
+## Seleção múltipla na venda — 16/11/2026
+
+- Substituído seletor de inclusão individual por lista com caixas de seleção e busca. Itens marcados têm quantidade, valor unitário e subtotal; total da venda soma todas as linhas e atualiza com preço Pix/cartão. RPC e validação transacional preservadas, sem migration.
+- Chromium com PostgreSQL descartável verificou dois produtos, quantidades diferentes, promoção/Pix (total R$ 324), busca, desmarcar/remarcar, persistência de duas linhas na mesma venda, baixa de estoque, recebimento e cancelamento. Captura browser-sale-multiple.png inspecionada.
+- 44 testes unitários/estáticos, teste Chromium e TypeScript/build aprovados. Nenhum lançamento remoto ou deploy.
+
+## Recebimentos em Vendas — 18/11/2026
+
+- Projeto localizado no novo caminho /home/pekaasasus/Documentos/PROJETOS/Jaque/jaquepratas.
+- Recebimentos integrado à página Vendas por botão ao lado de Registrar venda direta, com contas a receber, histórico e estornos existentes. Botão Ver vendas retorna à listagem. Filtros permanecem ao alternar; aba na URL permite recarregar a visão correta.
+- Removido menu separado; /admin/recebimentos redireciona para /admin/vendas?aba=recebimentos. Sem alteração de banco ou operações financeiras.
+- 44 testes unitários/estáticos, TypeScript/build e fluxo Chromium com PostgreSQL descartável aprovados. Navegador confirmou botão, ausência de menu separado, redirecionamento, pagamento e retorno às vendas. Sem operação remota ou deploy.
+
+## Indicadores atuais do painel — 18/11/2026
+
+- Removidos os indicadores Condicionais abertas e Unidades em condicional da visão compartilhada por Início/Relatórios. Mantidos os nove indicadores atuais de vendas, recebimentos e estoque disponível; grade em três colunas no desktop, duas em tablet e uma no celular. Dados e históricos de banco preservados.
+- TypeScript/build e teste Chromium com PostgreSQL descartável aprovados. Teste confirma nove cartões, ausência dos dois indicadores no Início/Relatórios e layout sem rolagem horizontal no celular. Captura browser-dashboard-current.png inspecionada. Sem alteração remota ou deploy.

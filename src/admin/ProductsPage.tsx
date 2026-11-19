@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Dialog from '../components/Dialog'
 import ProductImage from '../components/ProductImage'
 import ProductForm from './ProductForm'
+import ProductStockDialog from './ProductStockDialog'
 import RecordActionDialog, { type RecordActionTarget } from './RecordActionDialog'
 import { listProducts, setActive } from '../lib/adminProducts'
 import { fetchCategories } from '../lib/catalog'
@@ -13,6 +14,7 @@ export default function ProductsPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading')
   const [editing, setEditing] = useState<string | 'new' | null>(null)
+  const [stockProduct, setStockProduct] = useState<AdminProduct | null>(null)
   const [showArchived, setShowArchived] = useState(false)
   const [recordAction, setRecordAction] = useState<RecordActionTarget | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -73,6 +75,7 @@ export default function ProductsPage() {
                   </td>
                   <td className="actions">
                     <button className="btn btn-ghost btn-sm" onClick={() => { setNotice(null); setEditing(p.id) }}>Editar</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setStockProduct(p)}>Movimentações</button>
                     {!p.archived_at && (
                       <button className="btn btn-ghost btn-sm"
                         onClick={() => run(() => setActive(p.id, !p.is_active), p.is_active ? 'Produto desativado.' : 'Produto ativado.')}>
@@ -92,6 +95,7 @@ export default function ProductsPage() {
         </div>
       )}
 
+      {stockProduct && <ProductStockDialog product={stockProduct} onClose={() => setStockProduct(null)} onChanged={load} />}
       <RecordActionDialog target={recordAction} onClose={() => setRecordAction(null)} onDone={async message => { setRecordAction(null); setNotice(message); await load() }} />
       <Dialog open={editing !== null} onClose={() => setEditing(null)} label="Formulário de produto" className="modal">
         {editing !== null && (

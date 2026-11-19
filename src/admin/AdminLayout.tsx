@@ -27,12 +27,9 @@ export default function AdminLayout() {
           <nav aria-label="Painel">
             <NavLink to="/admin" end className={link}>Início</NavLink>
             <NavLink to="/admin/produtos" className={link}>Produtos</NavLink>
-            <NavLink to="/admin/estoque" className={link}>Estoque</NavLink>
 <NavLink to="/admin/clientes" className={link}>Clientes</NavLink>
 <NavLink to="/admin/vendas" className={link}>Vendas</NavLink>
-<NavLink to="/admin/recebimentos" className={link}>Recebimentos</NavLink>
 <NavLink to="/admin/relatorios" className={link}>Relatórios</NavLink>
-            <NavLink to="/admin/condicionais" className={link}>Condicionais</NavLink>
           </nav>
           <div className="admin-actions">
             <NavLink to="/" className="link">Ver loja</NavLink>
